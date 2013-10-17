@@ -7,7 +7,7 @@
 # This was kept very lightweight in the interest of keeping the 
 # stream source always running.  Any code changes to the selector
 # algorithm, logging configuration, or potential database schema 
-# changes can all happen in a web app that is visited only once
+# changes can all happen in a an http API that is visited only once
 # per song change.  Theoretically, a hard-coded web server could
 # be put up in its place to keep the feed going during maintenance.
 #
