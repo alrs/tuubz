@@ -11,12 +11,7 @@ STATION_ID_DIR = '/srv/mp3/station_id'
 MUSIC_DIR = '/srv/mp3/music'
 HOST_IP = '192.168.122.108'
 HOST_PORT = '8080'
-
-global id_played
-id_played = 0
-
-station_ids = [os.path.join(STATION_ID_DIR, f) for f in os.listdir(STATION_ID_DIR)]
-music = [os.path.join(MUSIC_DIR, f) for f in os.listdir(MUSIC_DIR)]
+REPETITION_MINUTES = 60
 
 def build_metadata(tag):
     metadata = []
@@ -25,24 +20,36 @@ def build_metadata(tag):
     metadata.append(str(tag.getYear()))
     return " | ".join(metadata)
 
+def fresh_song(songs):
+    global spin
+    fresh = False
+    while not fresh:
+        song = random.choice(songs)
+        if test_for_tags(song):
+            tag = eyeD3.Mp3AudioFile(song).getTag()
+            try:
+                if int(time.time() - spin[tag.getArtist()]) > \
+                (REPETITION_MINUTES * 60):
+                    fresh = True
+                else:
+                    print u'{} is stale, skipping.'.format(tag.getArtist())
+            except KeyError:
+                fresh = True
+        else:
+            break
+
+    metadata = build_metadata(tag)
+    result = {"filename": song,
+              "metadata" : metadata}
+    spin[tag.getArtist()] = int(time.time())
+    return result
+
+
 def random_id(ids):
     result = {"filename" : random.choice(station_ids),
             "metadata" : DEFAULT_METADATA}
     return result
 
-def random_song(songs):
-    print "there are {} songs available".format(len(songs))
-    song = random.choice(songs)
-    if test_for_tags(song):
-        tag = eyeD3.Mp3AudioFile(song).getTag()
-        metadata = build_metadata(tag)
-    else:
-        metadata = DEFAULT_METADATA
-
-    result = {"filename": song,
-              "metadata" : metadata}
-
-    return result
 
 def test_for_tags(fname):
     try:
@@ -64,6 +71,14 @@ def test_for_tags(fname):
     print "found tag"
     return True
 
+global id_played
+global spin
+id_played = 0
+spin = {}
+
+station_ids = [os.path.join(STATION_ID_DIR, f) for f in os.listdir(STATION_ID_DIR)]
+music = [os.path.join(MUSIC_DIR, f) for f in os.listdir(MUSIC_DIR)]
+
 app = Bottle()
 @app.route('/select')
 def select():
@@ -75,6 +90,6 @@ def select():
             return json.dumps(random_id(station_ids), indent=True)
         else:
             print "play a song"
-            return json.dumps(random_song(music), indent=True)
+            return json.dumps(fresh_song(music), indent=True)
 
 run(app, host=HOST_IP, port=HOST_PORT)
