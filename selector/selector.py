@@ -23,7 +23,8 @@ def build_metadata(tag):
     metadata = []
     metadata.append(str(tag.getArtist()))
     metadata.append(str(tag.getTitle()))
-    metadata.append(str(tag.getYear()))
+    if (tag.getYear()):
+        metadata.append(str(tag.getYear()))
     return " | ".join(metadata)
 
 def fresh_song(songs):
