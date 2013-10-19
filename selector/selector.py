@@ -12,7 +12,7 @@ STATION_ID_DIR = '/srv/mp3/station_id'
 MUSIC_DIR = '/srv/mp3/music'
 HOST_IP = '192.168.122.108'
 HOST_PORT = '8080'
-REPETITION_MINUTES = 60
+REPETITION_MINUTES = 180
 REDIS_SERVER = {'host': 'localhost',
                 'port': 6379,
                 'db': 0}
