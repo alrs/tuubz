@@ -23,8 +23,11 @@ global metadata
 # These are getting put in to a configuration file once
 # I tackle tuubz-common
 STARTUP_SLEEP_SECONDS = 2
-REQUESTOR_URL = 'http://192.168.122.108:8000/select'
+REQUESTOR_URL = 'http://192.168.122.108:8080/select'
+EMERGENCY_RESPONSE_MP3 = '/srv/mp3/emergency/sweep.mp3'
 
+class SelectorAPIFailure(Exception):
+    pass
 
 # Function called to initialize your python environment.
 # Should return 1 if ok, and 0 if something went wrong.
@@ -43,17 +46,20 @@ def ices_shutdown():
 # Should return a string.
 def ices_get_next():
     global metadata
-    r = requests.get(REQUESTOR_URL)
-    if r.status_code == 200:
+    metadata = ""
+    try:
+        r = requests.get(REQUESTOR_URL)
+        if r.status_code != 200:
+            raise SelectorAPIFailure
         result = json.loads(r.content)
         pprint(result)
         metadata = result['metadata']
         filename = result['filename']
-    else:
-        metadata = ""
-        filename = ""
-    return str(filename)
-
+        return str(filename)
+    except:
+        print "hit exception"
+        metadata = "FAIL"
+        return EMERGENCY_RESPONSE_MP3
 
 # This function, if defined, returns the string you'd like used
 # as metadata (ie for title streaming) for the current song. You may
