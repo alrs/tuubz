@@ -3,6 +3,7 @@ import eyeD3
 import json
 import os
 import random
+import redis
 import time
 
 DEFAULT_METADATA = "http://tuu.bz"
@@ -12,6 +13,11 @@ MUSIC_DIR = '/srv/mp3/music'
 HOST_IP = '192.168.122.108'
 HOST_PORT = '8080'
 REPETITION_MINUTES = 60
+REDIS_SERVER = {'host': 'localhost',
+                'port': 6379,
+                'db': 0}
+SPINS_HSET_KEY = 'spins'
+LAST_ID_KEY = 'last_station_id'
 
 def build_metadata(tag):
     metadata = []
@@ -21,15 +27,18 @@ def build_metadata(tag):
     return " | ".join(metadata)
 
 def fresh_song(songs):
-    global spin
     fresh = False
     while not fresh:
         song = random.choice(songs)
         if test_for_tags(song):
             tag = eyeD3.Mp3AudioFile(song).getTag()
+            artist = str(tag.getArtist())
             try:
-                if int(time.time() - spin[tag.getArtist()]) > \
-                (REPETITION_MINUTES * 60):
+                last_spin = int(redis_server.hget(SPINS_HSET_KEY,artist.lower()))
+            except:
+                last_spin = 0
+            try:
+                if int(time.time() - last_spin) > (REPETITION_MINUTES * 60):
                     fresh = True
                 else:
                     print u'{} is stale, skipping.'.format(tag.getArtist())
@@ -41,7 +50,7 @@ def fresh_song(songs):
     metadata = build_metadata(tag)
     result = {"filename": song,
               "metadata" : metadata}
-    spin[tag.getArtist()] = int(time.time())
+    redis_server.hset(SPINS_HSET_KEY, artist.lower(), int(time.time()))
     return result
 
 
@@ -71,10 +80,25 @@ def test_for_tags(fname):
     print "found tag"
     return True
 
-global id_played
-global spin
-id_played = 0
-spin = {}
+
+def prime_spins_key():
+    redis.hset(SPINS_HSET_KEY, 'STARTUP', int(time.time()))
+    return None
+
+def prime_station_id_key():
+    redis.set(LAST_ID_KEY, '0')
+    return None
+
+global redis_server
+
+redis_server = redis.StrictRedis(host=REDIS_SERVER['host'],
+                                 port=REDIS_SERVER['port'],
+                                 db=REDIS_SERVER['db'])
+if not redis_server.exists(LAST_ID_KEY):
+    prime_station_id_key()
+
+if not redis_server.exists(SPINS_HSET_KEY):
+    prime_spins_key()
 
 station_ids = [os.path.join(STATION_ID_DIR, f) for f in os.listdir(STATION_ID_DIR)]
 music = [os.path.join(MUSIC_DIR, f) for f in os.listdir(MUSIC_DIR)]
@@ -82,11 +106,11 @@ music = [os.path.join(MUSIC_DIR, f) for f in os.listdir(MUSIC_DIR)]
 app = Bottle()
 @app.route('/select')
 def select():
-    global id_played 
     while True:
+        id_played = int(redis_server.get(LAST_ID_KEY))
         if (int(time.time()) - id_played) > (60 * ID_MINUTES):
             print "play an ID"
-            id_played = int(time.time())
+            redis_server.set(LAST_ID_KEY,int(time.time()))
             return json.dumps(random_id(station_ids), indent=True)
         else:
             print "play a song"
