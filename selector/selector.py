@@ -42,7 +42,9 @@ def fresh_song(songs):
                 if int(time.time() - last_spin) > (REPETITION_MINUTES * 60):
                     fresh = True
                 else:
-                    print u'{} is stale, skipping.'.format(tag.getArtist())
+                    fresh = False
+                    print u'{} is stale, skipping.'.format(artist)
+                    artist = ""
             except KeyError:
                 fresh = True
         else:
