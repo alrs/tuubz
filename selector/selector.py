@@ -42,7 +42,10 @@ def fresh_song(songs):
             except:
                 last_spin = 0
             try:
-                if int(time.time() - last_spin) > (REPETITION_MINUTES * 60):
+                minutes_since_last_spin = int(time.time() - last_spin) / 60
+                print "{} minutes since last spin of {}".format(
+                        minutes_since_last_spin, artist.lower())
+                if minutes_since_last_spin > REPETITION_MINUTES:
                     fresh = True
                 else:
                     fresh = False
