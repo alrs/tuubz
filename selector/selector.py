@@ -8,16 +8,19 @@ import time
 
 DEFAULT_METADATA = "http://tuu.bz"
 ID_MINUTES = 10
+ROTATION_SPIN_MINUTES=10
 STATION_ID_DIR = '/srv/mp3/station_id'
-MUSIC_DIR = '/srv/mp3/music'
+MUSIC_DIR_CATALOG = '/srv/mp3/music'
+MUSIC_DIR_ROTATION = '/srv/mp3/rotation'
 HOST_IP = '192.168.122.108'
 HOST_PORT = '8080'
-REPETITION_MINUTES = 180
+REPETITION_MINUTES = 360
 REDIS_SERVER = {'host': 'localhost',
                 'port': 6379,
                 'db': 0}
 SPINS_HSET_KEY = 'spins'
 LAST_ID_KEY = 'last_station_id'
+LAST_ROTATION_SPIN_KEY = 'rotation_spin'
 
 def build_metadata(tag):
     metadata = []
@@ -48,7 +51,7 @@ def fresh_song(songs):
             except KeyError:
                 fresh = True
         else:
-            break
+            pass
 
     metadata = build_metadata(tag)
     result = {"filename": song,
@@ -84,13 +87,19 @@ def test_for_tags(fname):
     return True
 
 
+def prime_rotation_key():
+    redis_server.set(LAST_ROTATION_SPIN_KEY, '0')
+
+
 def prime_spins_key():
-    redis.hset(SPINS_HSET_KEY, 'STARTUP', int(time.time()))
+    redis_server.hset(SPINS_HSET_KEY, 'STARTUP', int(time.time()))
     return None
 
+
 def prime_station_id_key():
-    redis.set(LAST_ID_KEY, '0')
+    redis_server.set(LAST_ID_KEY, '0')
     return None
+
 
 global redis_server
 
@@ -103,8 +112,14 @@ if not redis_server.exists(LAST_ID_KEY):
 if not redis_server.exists(SPINS_HSET_KEY):
     prime_spins_key()
 
+if not redis_server.exists(LAST_ROTATION_SPIN_KEY):
+    prime_rotation_key()
+
 station_ids = [os.path.join(STATION_ID_DIR, f) for f in os.listdir(STATION_ID_DIR)]
-music = [os.path.join(MUSIC_DIR, f) for f in os.listdir(MUSIC_DIR)]
+catalog = [os.path.join(MUSIC_DIR_CATALOG, f) for f in
+        os.listdir(MUSIC_DIR_CATALOG)]
+rotation = [os.path.join(MUSIC_DIR_ROTATION, f) for f in
+        os.listdir(MUSIC_DIR_ROTATION)]
 
 app = Bottle()
 @app.route('/select')
@@ -117,6 +132,11 @@ def select():
             return json.dumps(random_id(station_ids), indent=True)
         else:
             print "play a song"
-            return json.dumps(fresh_song(music), indent=True)
+            if int(time.time()) - int(redis_server.get(LAST_ROTATION_SPIN_KEY)) > (60 *
+                    ROTATION_SPIN_MINUTES):
+                redis_server.set(LAST_ROTATION_SPIN_KEY,int(time.time()))
+                return json.dumps(fresh_song(rotation), indent=True)
+            else:
+                return json.dumps(fresh_song(catalog), indent=True)
 
 run(app, host=HOST_IP, port=HOST_PORT)
