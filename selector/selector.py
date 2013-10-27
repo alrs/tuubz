@@ -22,6 +22,9 @@ SPINS_HSET_KEY = 'spins'
 LAST_ID_KEY = 'last_station_id'
 LAST_ROTATION_SPIN_KEY = 'rotation_spin'
 
+class NoFreshSongsError(Exception):
+    pass
+
 def build_metadata(tag):
     metadata = []
     metadata.append(str(tag.getArtist()))
@@ -31,8 +34,11 @@ def build_metadata(tag):
     return " | ".join(metadata)
 
 def fresh_song(songs):
+    available_songs = len(songs)
     fresh = False
     while not fresh:
+        if available_songs == 0:
+            raise NoFreshSongsError
         song = random.choice(songs)
         if test_for_tags(song):
             tag = eyeD3.Mp3AudioFile(song).getTag()
@@ -48,6 +54,7 @@ def fresh_song(songs):
                 if minutes_since_last_spin > REPETITION_MINUTES:
                     fresh = True
                 else:
+                    available_songs -= 1
                     fresh = False
                     print u'{} is stale, skipping.'.format(artist)
                     artist = ""
