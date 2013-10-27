@@ -20,11 +20,7 @@ from pprint import pprint
 
 global metadata
 
-# These are getting put in to a configuration file once
-# I tackle tuubz-common
-STARTUP_SLEEP_SECONDS = 2
-REQUESTOR_URL = 'http://192.168.122.108:8080/select'
-EMERGENCY_RESPONSE_MP3 = '/srv/mp3/emergency/sweep.mp3'
+execfile('/etc/tuubz/ices.conf')
 
 class SelectorAPIFailure(Exception):
     pass
@@ -48,7 +44,7 @@ def ices_get_next():
     global metadata
     metadata = ""
     try:
-        r = requests.get(REQUESTOR_URL)
+        r = requests.get(SELECTOR_URL)
         if r.status_code != 200:
             raise SelectorAPIFailure
         result = json.loads(r.content)

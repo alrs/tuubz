@@ -6,21 +6,11 @@ import random
 import redis
 import time
 
-DEFAULT_METADATA = "http://tuu.bz"
-ID_MINUTES = 10
-ROTATION_SPIN_MINUTES=10
-STATION_ID_DIR = '/srv/mp3/station_id'
-MUSIC_DIR_CATALOG = '/srv/mp3/music'
-MUSIC_DIR_ROTATION = '/srv/mp3/rotation'
-HOST_IP = '192.168.122.108'
-HOST_PORT = '8080'
-REPETITION_MINUTES = 360
-REDIS_SERVER = {'host': 'localhost',
-                'port': 6379,
-                'db': 0}
 SPINS_HSET_KEY = 'spins'
 LAST_ID_KEY = 'last_station_id'
-LAST_ROTATION_SPIN_KEY = 'rotation_spin'
+LAST_ROTATION_SPIN_KEY = 'last_rotation_spin'
+
+execfile('/etc/tuubz/selector.conf')
 
 class NoFreshSongsError(Exception):
     pass
