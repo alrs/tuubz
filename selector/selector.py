@@ -6,7 +6,7 @@ import random
 import redis
 import time
 
-SPINS_HSET_KEY = 'spins'
+SPINS_ZSET_KEY = 'spins'
 LAST_ID_KEY = 'last_station_id'
 LAST_ROTATION_SPIN_KEY = 'last_rotation_spin'
 
@@ -34,7 +34,7 @@ def fresh_song(songs):
             tag = eyeD3.Mp3AudioFile(song).getTag()
             artist = str(tag.getArtist())
             try:
-                last_spin = int(redis_server.hget(SPINS_HSET_KEY,artist.lower()))
+                last_spin = int(redis_server.zscore(SPINS_ZSET_KEY,artist.lower()))
             except:
                 last_spin = 0
             try:
@@ -56,7 +56,7 @@ def fresh_song(songs):
     metadata = build_metadata(tag)
     result = {"filename": song,
               "metadata" : metadata}
-    redis_server.hset(SPINS_HSET_KEY, artist.lower(), int(time.time()))
+    redis_server.zadd(SPINS_ZSET_KEY, int(time.time()), artist.lower())
     return result
 
 
@@ -92,7 +92,7 @@ def prime_rotation_key():
 
 
 def prime_spins_key():
-    redis_server.hset(SPINS_HSET_KEY, 'STARTUP', int(time.time()))
+    redis_server.zadd(SPINS_ZSET_KEY, int(time.time()), 'STARTUP')
     return None
 
 
@@ -109,7 +109,7 @@ redis_server = redis.StrictRedis(host=REDIS_SERVER['host'],
 if not redis_server.exists(LAST_ID_KEY):
     prime_station_id_key()
 
-if not redis_server.exists(SPINS_HSET_KEY):
+if not redis_server.exists(SPINS_ZSET_KEY):
     prime_spins_key()
 
 if not redis_server.exists(LAST_ROTATION_SPIN_KEY):
