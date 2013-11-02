@@ -15,6 +15,14 @@ execfile('/etc/tuubz/selector.conf')
 class NoFreshSongsError(Exception):
     pass
 
+def build_songlist(directory):
+    result = []
+    for root,dirs,files in os.walk(directory):
+        for f in files:
+            if f.endswith(".mp3"):
+                result.append(os.path.join(root,f))
+    return result
+
 def build_metadata(tag):
     metadata = []
     metadata.append(str(tag.getArtist()))
@@ -116,10 +124,9 @@ if not redis_server.exists(LAST_ROTATION_SPIN_KEY):
     prime_rotation_key()
 
 station_ids = [os.path.join(STATION_ID_DIR, f) for f in os.listdir(STATION_ID_DIR)]
-catalog = [os.path.join(MUSIC_DIR_CATALOG, f) for f in
-        os.listdir(MUSIC_DIR_CATALOG)]
-rotation = [os.path.join(MUSIC_DIR_ROTATION, f) for f in
-        os.listdir(MUSIC_DIR_ROTATION)]
+
+catalog = build_songlist(MUSIC_DIR_CATALOG)
+rotation = build_songlist(MUSIC_DIR_ROTATION)
 
 app = Bottle()
 @app.route('/select')
