@@ -1,0 +1,2 @@
+export PYTHONPATH=/var/lib/ices
+DAEMON_ARGS="-S python -m stream/tuubz.mp3 -r -R -b 128 -d tuubz -P hackme -n tuubz -D /var/log/ices"
